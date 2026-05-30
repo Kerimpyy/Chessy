@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Chess</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" integrity="sha384-q94+BZtLwX3fKstQR9fCh+6v97o9beT6jBLMbaXn8P4yWz08cDoB9aM5Un6IuLzb" crossorigin="anonymous">
+    
+    <style>
+        /* Body styling to give it that dark Chess.com vibe */
+        body {
+            background-color: #302e2b;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #81b64c; /* Chess.com green */
+        }
+
+        /* Container that limits the board size and keeps it responsive */
+        .board-container {
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .status-container {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            background-color: #262421;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 1px solid #403e3a;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Infinity Chess</h1>
+    
+    <div class="board-container">
+        <div id="myBoard"></div>
+    </div>
+
+    <div class="status-container">
+        <span id="status">White's turn to move.</span>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOv6567qeCH39Po546Je3cOP9" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha384-idY770eZ7qE9pIAs07z2bBfWnQ+Nf9W+M6WwX/Wv46N4V0HjD7W53d8V8z8M9t54" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3UhLuW4xthC6PG1v4uJu4UeF6HxaG7QqvB" crossorigin="anonymous"></script>
+
+    <script>
+        // 1. Initialize the chess logic engine
+        var game = new Chess();
+        var $status = $('#status');
+        var board = null;
+
+        // 2. What happens when a player picks up a piece?
+        function onDragStart (source, piece, position, orientation) {
+            // Do not pick up pieces if the game is over
+            if (game.game_over()) return false;
+
+            // Only pick up pieces for the side whose turn it is
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false;
+            }
+        }
+
+        // 3. What happens when a player drops a piece onto a square?
+        function onDrop (source, target) {
+            // See if the move is legal according to chess rules
+            var move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' // Automatically promote pawns to a queen for simplicity
+            });
+
+            // If the move is illegal, snap the piece back to its original square
+            if (move === null) return 'snapback';
+
+            updateStatus();
+        }
+
+        // 4. Update the board visual after piece animation completes
+        function onSnapEnd () {
+            board.position(game.fen());
+        }
+
+        // 5. Update game text status (Check, Checkmate, Draw, or Next Turn)
+        function updateStatus () {
+            var status = '';
+            var moveColor = 'White';
+            if (game.turn() === 'b') {
+                moveColor = 'Black';
+            }
+
+            if (game.in_checkmate()) {
+                status = 'Game over, ' + moveColor + ' is in checkmate.';
+            } else if (game.in_draw()) {
+                status = 'Game over, drawn position.';
+            } else {
+                status = moveColor + "'s turn to move.";
+                if (game.in_check()) {
+                    status += ' (Check!)';
+                }
+            }
+
+            $status.html(status);
+        }
+
+        // 6. Chessboard.js configuration options
+        var config = {
+            draggable: true,
+            position: 'start',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png' // Pulls standard chess pieces
+        };
+
+        // 7. Inject the board into our HTML div
+        board = Chessboard('myBoard', config);
+        updateStatus();
+    </script>
+</body>
+</html>
